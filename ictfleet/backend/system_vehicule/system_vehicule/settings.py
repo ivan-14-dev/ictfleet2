@@ -53,7 +53,6 @@ INSTALLED_APPS = [
     'accessories',
     'user_messages',
     'notifications',
-    'prevision',
 ]
 
 MIDDLEWARE = [

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { accessoriesAPI, vehiclesAPI } from '../service/api';
 import AddAccessoryModal from '../component/AddAccessoryModal';
 
-const AccessoriesPage = ({ onBack, showHeader = true }) => {
+const AccessoriesPage = ({ onBack, showHeader = true, searchQuery = '' }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [accessories, setAccessories] = useState([]);
   const [stockAlerts, setStockAlerts] = useState([]);
@@ -134,8 +134,15 @@ const AccessoriesPage = ({ onBack, showHeader = true }) => {
     setIsAddAccessoryModalOpen(false);
   };
 
-  // Use all accessories (no filtering)
-  const filteredAccessories = accessories;
+   const filteredAccessories = accessories.filter(item => {
+     const query = searchQuery.toLowerCase();
+     if (!query) return true;
+     return (
+       item.name?.toLowerCase().includes(query) ||
+       item.description?.toLowerCase().includes(query) ||
+       (item.sku?.toLowerCase().includes(query))
+     );
+   });
 
   // Get status for accessories based on stock levels
   const getAccessoryStatus = (accessory) => {

@@ -103,7 +103,7 @@
   </li>
   <li>
     Accéder au dossier du projet
-    <pre>cd ictfeetCars</pre>
+    <pre>cd ictfleet</pre>
   </li>
   <li>
     Installer les dépendances

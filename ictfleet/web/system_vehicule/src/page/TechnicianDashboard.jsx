@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
+import ProfilePage from './ProfilePage';
 import AddAccessoryModal from '../component/AddAccessoryModal';
 import BreakdownReportModal from '../component/BreakdownReportModal';
 import RepairRecordModal from '../component/RepairRecordModal';
 import RepairRecordsReport from '../component/RepairRecordsReport';
 import UserProfileDropdown from '../component/UserProfileDropdown';
 import UserProfileModal from '../component/UserProfileModal';
-import PrevisionChatWidget from '../component/PrevisionChatWidget';
 import AccessoriesPage from './AccessoriesPage';
 import { isMechanic, vehiclesAPI, accessoriesAPI, messagesAPI, authAPI, breakdownsAPI } from '../service/api';
 
@@ -284,34 +284,41 @@ const TopNavRight = styled.div`
   gap: 1.5rem;
 `;
 
-const NotificationButton = styled.button`
-  position: relative;
-  padding: 0.5rem;
-  background: none;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
-  border-radius: 0.375rem;
-  transition: background 0.2s ease;
+ const NotificationButton = styled.button`
+   position: relative;
+   padding: 0.5rem;
+   background: none;
+   border: none;
+   color: #64748b;
+   cursor: pointer;
+   border-radius: 0.375rem;
+   transition: background 0.2s ease;
 
-  &:hover {
-    background: #f1f5f9;
-  }
+   &:hover {
+     background: #f1f5f9;
+   }
+ `;
 
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    width: 0.5rem;
-    height: 0.5rem;
-    background: #ef4444;
-    border: 2px solid white;
-    border-radius: 50%;
-  }
-`;
+ const NotificationBadge = styled.span`
+   position: absolute;
+   top: 0;
+   right: 0;
+   background: #ef4444;
+   color: white;
+   font-size: 0.625rem;
+   font-weight: 700;
+   padding: 0.125rem 0.375rem;
+   border-radius: 9999px;
+   min-width: 1.125rem;
+   height: 1.125rem;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   border: 2px solid white;
+   transform: translate(25%, -25%);
+ `;
 
-const SettingsButton = styled.button`
+ const SettingsButton = styled.button`
   padding: 0.5rem;
   background: none;
   border: none;
@@ -753,9 +760,379 @@ const CloseButton = styled.button`
   span {
     font-size: 1.1rem;
   }
-`;
+ `;
 
-const TechnicianDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsage }) => {
+ // Popup styles for notifications and passage
+ const PopupOverlay = styled.div`
+   position: fixed;
+   inset: 0;
+   background: rgba(15, 23, 42, 0.6);
+   backdrop-filter: blur(4px);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   z-index: 2000;
+   padding: 1rem;
+   animation: fadeIn 0.2s ease-out;
+
+   @keyframes fadeIn {
+     from { opacity: 0; }
+     to { opacity: 1; }
+   }
+ `;
+
+ const PopupContent = styled.div`
+   background: white;
+   border-radius: 1.5rem;
+   width: 100%;
+   max-width: 600px;
+   max-height: 80vh;
+   display: flex;
+   flex-direction: column;
+   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+   overflow: hidden;
+   animation: slideUp 0.3s ease-out;
+
+   @keyframes slideUp {
+     from { opacity: 0; transform: translateY(30px); }
+     to { opacity: 1; transform: translateY(0); }
+   }
+ `;
+
+ const PopupContentSmall = styled(PopupContent)`
+   max-width: 480px;
+ `;
+
+ const PopupHeader = styled.div`
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   padding: 1.25rem 1.5rem;
+   border-bottom: 1px solid #e2e8f0;
+   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+ `;
+
+ const PopupTitle = styled.h3`
+   display: flex;
+   align-items: center;
+   gap: 0.5rem;
+   font-size: 1.125rem;
+   font-weight: 700;
+   color: #0d141b;
+   margin: 0;
+
+   .fi-icon {
+     color: #3b82f6;
+   }
+ `;
+
+ const PopupCloseButton = styled.button`
+   width: 2rem;
+   height: 2rem;
+   border-radius: 50%;
+   border: none;
+   background: #f1f5f9;
+   color: #64748b;
+   cursor: pointer;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 1.25rem;
+   transition: all 0.2s ease;
+
+   &:hover {
+     background: #e2e8f0;
+     color: #0d141b;
+     transform: rotate(90deg);
+   }
+ `;
+
+ const PopupBody = styled.div`
+   flex: 1;
+   overflow-y: auto;
+   padding: 1.5rem;
+ `;
+
+ const PopupFooter = styled.div`
+   padding: 1rem 1.5rem;
+   border-top: 1px solid #e2e8f0;
+   background: #f8fafc;
+ `;
+
+ const MessagesList = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: 1rem;
+ `;
+
+ const MessageItem = styled.div`
+   background: #f8fafc;
+   border-radius: 0.75rem;
+   padding: 1rem;
+   border-left: 4px solid ${props => props.$isRead ? '#e2e8f0' : '#3b82f6'};
+   transition: all 0.2s ease;
+
+   &:hover {
+     background: #f1f5f9;
+   }
+ `;
+
+ const MessageHeader = styled.div`
+   display: flex;
+   align-items: flex-start;
+   justify-content: space-between;
+   margin-bottom: 0.5rem;
+ `;
+
+ const SenderInfo = styled.div`
+   display: flex;
+   align-items: center;
+   gap: 0.75rem;
+ `;
+
+ const Avatar = styled.div`
+   width: 2.5rem;
+   height: 2.5rem;
+   border-radius: 50%;
+   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+   color: white;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-weight: 700;
+   font-size: 0.875rem;
+ `;
+
+ const SenderName = styled.div`
+   font-weight: 600;
+   color: #0d141b;
+   font-size: 0.9375rem;
+ `;
+
+ const MessageTime = styled.div`
+   font-size: 0.75rem;
+   color: #64748b;
+   margin-top: 0.125rem;
+ `;
+
+ const UnreadBadge = styled.span`
+   background: #ef4444;
+   color: white;
+   font-size: 0.625rem;
+   font-weight: 700;
+   padding: 0.25rem 0.5rem;
+   border-radius: 9999px;
+   text-transform: uppercase;
+   letter-spacing: 0.05em;
+ `;
+
+ const MessageSubject = styled.div`
+   font-weight: 600;
+   color: #0d141b;
+   margin-bottom: 0.5rem;
+   font-size: 0.9375rem;
+ `;
+
+ const MessageBody = styled.div`
+   color: #475569;
+   font-size: 0.875rem;
+   line-height: 1.5;
+ `;
+
+ const EmptyState = styled.div`
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: 3rem;
+   color: #94a3b8;
+   text-align: center;
+
+   .fi-icon {
+     width: 3rem;
+     height: 3rem;
+     margin-bottom: 1rem;
+     opacity: 0.5;
+   }
+ `;
+
+ const spin = keyframes`
+   from { transform: rotate(0deg); }
+   to { transform: rotate(360deg); }
+ `;
+
+ const LoadingSpinner = styled.div`
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: 3rem;
+   color: #3b82f6;
+   gap: 1rem;
+
+   .spinning {
+     animation: ${spin} 1s linear infinite;
+   }
+ `;
+
+ const SendPassageButton = styled.button`
+   width: 100%;
+   padding: 0.875rem 1.5rem;
+   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+   color: white;
+   border: none;
+   border-radius: 0.75rem;
+   font-size: 0.9375rem;
+   font-weight: 600;
+   cursor: pointer;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 0.5rem;
+   transition: all 0.2s ease;
+   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+
+   &:hover {
+     transform: translateY(-2px);
+     box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+   }
+ `;
+
+ const FormGroup = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: 0.5rem;
+   margin-bottom: 1.25rem;
+ `;
+
+ const FormLabel = styled.label`
+   font-size: 0.875rem;
+   font-weight: 600;
+   color: #374151;
+   display: flex;
+   align-items: center;
+   gap: 0.375rem;
+ `;
+
+ const FormTextArea = styled.textarea`
+   width: 100%;
+   padding: 0.75rem 1rem;
+   border: 2px solid #e2e8f0;
+   border-radius: 0.75rem;
+   font-size: 0.9375rem;
+   color: #0d141b;
+   transition: all 0.2s ease;
+   outline: none;
+   resize: vertical;
+   min-height: 100px;
+   font-family: inherit;
+
+   &:focus {
+     border-color: #0ea5e9;
+     box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+   }
+
+   &::placeholder {
+     color: #94a3b8;
+   }
+ `;
+
+ const FormSelect = styled.select`
+   width: 100%;
+   padding: 0.75rem 1rem;
+   border: 2px solid #e2e8f0;
+   border-radius: 0.75rem;
+   font-size: 0.9375rem;
+   color: #0d141b;
+   background: white;
+   cursor: pointer;
+   outline: none;
+   transition: all 0.2s ease;
+
+   &:focus {
+     border-color: #0ea5e9;
+     box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+   }
+ `;
+
+ const UrgencyWarning = styled.div`
+   display: flex;
+   align-items: center;
+   gap: 0.5rem;
+   padding: 0.75rem;
+   border-radius: 0.5rem;
+   font-size: 0.875rem;
+   font-weight: 600;
+   background: ${props => {
+     switch (props.$level) {
+       case 'critical': return 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+       case 'urgent': return 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+       default: return '#f1f5f9';
+     }
+   }};
+   color: ${props => {
+     switch (props.$level) {
+       case 'critical': return '#dc2626';
+       case 'urgent': return '#d97706';
+       default: return '#475569';
+     }
+   }};
+   margin-bottom: 1rem;
+ `;
+
+ const ButtonGroup = styled.div`
+   display: flex;
+   gap: 0.75rem;
+   padding-top: 0.5rem;
+ `;
+
+ const CancelButton = styled.button`
+   flex: 1;
+   padding: 0.875rem 1.5rem;
+   border-radius: 0.75rem;
+   font-size: 0.9375rem;
+   font-weight: 600;
+   cursor: pointer;
+   transition: all 0.2s ease;
+   background: #f1f5f9;
+   border: 2px solid #e2e8f0;
+   color: #475569;
+
+   &:hover:not(:disabled) {
+     background: #e2e8f0;
+     color: #0d141b;
+   }
+ `;
+
+ const SendButton = styled.button`
+   flex: 1;
+   padding: 0.875rem 1.5rem;
+   border-radius: 0.75rem;
+   font-size: 0.9375rem;
+   font-weight: 600;
+   cursor: pointer;
+   transition: all 0.2s ease;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 0.5rem;
+   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+   border: none;
+   color: white;
+   box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+
+   &:hover:not(:disabled) {
+     transform: translateY(-2px);
+     box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+   }
+
+   &:disabled {
+     opacity: 0.6;
+     cursor: not-allowed;
+   }
+ `;
+
+ const TechnicianDashboard = ({ onLogout, currentUser, onOpenFuelUsage }) => {
   const [activeSection, setActiveSection] = useState('overview');
   const [isAddAccessoryModalOpen, setIsAddAccessoryModalOpen] = useState(false);
   const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
@@ -772,7 +1149,20 @@ const TechnicianDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFue
   const [loadingBreakdowns, setLoadingBreakdowns] = useState(false);
   const [selectedBreakdown, setSelectedBreakdown] = useState(null);
   const [isBreakdownDetailModalOpen, setIsBreakdownDetailModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+   const [loading, setLoading] = useState(true);
+
+  // Notification states
+  const [showNotificationsPopup, setShowNotificationsPopup] = useState(false);
+  const [showPassagePopup, setShowPassagePopup] = useState(false);
+  const [adminMessages, setAdminMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [passageFormData, setPassageFormData] = useState({
+    message: '',
+    urgency: 'normal'
+  });
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: 'bar-chart-2' },
@@ -862,22 +1252,60 @@ const TechnicianDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFue
       bg: '#3b82f6',
       color: '#3b82f6'
     }
-  ];
+   ];
 
-  useEffect(() => {
-    if (!isMechanic()) {
-      return;
-    }
+  // Filtered data based on searchQuery
+  const filteredBreakdowns = breakdowns.filter(b => {
+    const q = searchQuery.toLowerCase();
+    return (
+      b.title?.toLowerCase().includes(q) ||
+      b.vehicle_info?.toLowerCase().includes(q) ||
+      b.description?.toLowerCase().includes(q)
+    );
+  });
 
-    fetchTechnicianData();
+  const filteredAccessories = accessories.filter(a => {
+    const q = searchQuery.toLowerCase();
+    return (
+      a.name?.toLowerCase().includes(q) ||
+      a.description?.toLowerCase().includes(q)
+    );
+  });
 
-    // Ensure Feather icons are rendered
-    if (window.feather) {
-      window.feather.replace();
-    }
-  }, []);
+   useEffect(() => {
+     if (!isMechanic()) {
+       return;
+     }
 
-  const fetchTechnicianData = async () => {
+     fetchTechnicianData();
+
+     // Ensure Feather icons are rendered
+     if (window.feather) {
+       window.feather.replace();
+     }
+   }, []);
+
+   // Fetch admin messages when notifications popup opens
+   useEffect(() => {
+     if (showNotificationsPopup) {
+       fetchAdminMessages();
+     }
+   }, [showNotificationsPopup]);
+
+   const fetchAdminMessages = async () => {
+     try {
+       setLoadingMessages(true);
+       const messages = await messagesAPI.getInbox();
+       setAdminMessages(Array.isArray(messages) ? messages : []);
+     } catch (error) {
+       console.error('Error fetching admin messages:', error);
+       setAdminMessages([]);
+     } finally {
+       setLoadingMessages(false);
+     }
+   };
+
+   const fetchTechnicianData = async () => {
     try {
       setLoading(true);
       const [vehiclesRes, accessoriesRes, maintenanceRes, repairsRes] = await Promise.allSettled([
@@ -947,30 +1375,47 @@ const TechnicianDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFue
     }
   };
 
-  const handleViewProfile = () => {
-    setIsProfileModalOpen(true);
-  };
+   const handleViewProfile = () => {
+     setActiveSection('profile');
+   };
 
-  const handleProfileUpdate = async () => {
-    // Fetch updated user data from API
-    try {
-      const updatedUser = await authAPI.getProfile();
-      // Update localStorage with new user data
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      // Update component state
-      setCurrentUser(updatedUser);
-    } catch (error) {
-      console.error('Error fetching updated user profile:', error);
-      // Fallback to localStorage if API fails
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        setCurrentUser(parsedUser);
-      }
-    }
-  };
+   const handleProfileUpdate = async () => {
+     // Fetch updated user data from API
+     try {
+       const updatedUser = await authAPI.getProfile();
+       // Update localStorage with new user data
+       localStorage.setItem('user', JSON.stringify(updatedUser));
+       // Update component state
+       setCurrentUser(updatedUser);
+     } catch (error) {
+       console.error('Error fetching updated user profile:', error);
+       // Fallback to localStorage if API fails
+       const userData = localStorage.getItem('user');
+       if (userData) {
+         const parsedUser = JSON.parse(userData);
+         setCurrentUser(parsedUser);
+       }
+     }
+   };
 
-  const handleSubmit = async (e) => {
+   const handleSubmitPassage = async (e) => {
+     e.preventDefault();
+     try {
+       await messagesAPI.sendMessage({
+         recipient_type: 'admin',
+         subject: `Passage Report - ${passageFormData.urgency}`,
+         body: passageFormData.message,
+         priority: passageFormData.urgency
+       });
+
+       setPassageFormData({ message: '', urgency: 'normal' });
+       setShowPassagePopup(false);
+     } catch (error) {
+       console.error('Error sending passage message:', error);
+     }
+   };
+
+   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const fullSubject = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report: ${subject}`;
@@ -1018,17 +1463,15 @@ const TechnicianDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFue
               <NavItem
                 key={item.id}
                 href="#"
-                className={activeSection === item.id ? 'active' : ''}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (item.isPrevision && onOpenPrevision) {
-                    onOpenPrevision();
-                  } else if (item.isFuel && onOpenFuelUsage) {
-                    onOpenFuelUsage();
-                  } else {
-                    setActiveSection(item.id);
-                  }
-                }}
+                 className={activeSection === item.id ? 'active' : ''}
+                 onClick={(e) => {
+                   e.preventDefault();
+                   if (item.isFuel && onOpenFuelUsage) {
+                     onOpenFuelUsage();
+                   } else {
+                     setActiveSection(item.id);
+                   }
+                 }}
               >
                 <i data-feather={item.icon} className="fi-icon"></i>
                 <span>{item.label}</span>
@@ -1050,19 +1493,24 @@ const TechnicianDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFue
 
       <MainContent>
         <TopNav>
-          <SearchContainer>
-            <SearchInput>
-              <input
-                type="text"
-                placeholder="Search repairs, parts..."
-              />
-            </SearchInput>
-          </SearchContainer>
+           <SearchContainer>
+             <SearchInput>
+               <input
+                 type="text"
+                 placeholder="Search repairs, parts..."
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+               />
+             </SearchInput>
+           </SearchContainer>
 
           <TopNavRight>
-            <NotificationButton>
-              <i data-feather="bell" className="fi-icon"></i>
-            </NotificationButton>
+             <NotificationButton onClick={() => setShowNotificationsPopup(true)}>
+               <i data-feather="bell" className="fi-icon"></i>
+               {adminMessages.length > 0 && (
+                 <NotificationBadge>{adminMessages.length}</NotificationBadge>
+               )}
+             </NotificationButton>
             <SettingsButton>
               <i data-feather="settings" className="fi-icon"></i>
             </SettingsButton>
@@ -1152,14 +1600,14 @@ const TechnicianDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFue
                 </button>
               </div>
 
-              {loadingBreakdowns ? (
-                <div style={{ textAlign: 'center', padding: '3rem' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '2.5rem', color: '#137fec', animation: 'spin 1s linear infinite' }}>refresh</span>
-                  <p style={{ marginTop: '1rem', color: '#64748b' }}>Loading breakdowns...</p>
-                </div>
-              ) : breakdowns.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
-                  {breakdowns.map((breakdown) => (
+               {loadingBreakdowns ? (
+                 <div style={{ textAlign: 'center', padding: '3rem' }}>
+                   <span className="material-symbols-outlined" style={{ fontSize: '2.5rem', color: '#137fec', animation: 'spin 1s linear infinite' }}>refresh</span>
+                   <p style={{ marginTop: '1rem', color: '#64748b' }}>Loading breakdowns...</p>
+                 </div>
+               ) : filteredBreakdowns.length > 0 ? (
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+                   {filteredBreakdowns.map((breakdown) => (
                     <div
                       key={breakdown.id}
                       onClick={() => {
@@ -1272,13 +1720,22 @@ const TechnicianDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFue
             </SectionContent>
           )}
 
-          {activeSection === 'stock' && (
-            <AccessoriesPage
-              onBack={() => setActiveSection('overview')}
-              showHeader={false}
-            />
-          )}
-        </DashboardContent>
+            {activeSection === 'stock' && (
+              <AccessoriesPage
+                onBack={() => setActiveSection('overview')}
+                showHeader={false}
+                searchQuery={searchQuery}
+              />
+            )}
+
+            {activeSection === 'profile' && (
+              <ProfilePage
+                currentUser={currentUser}
+                onBack={() => setActiveSection('overview')}
+                onEdit={() => setIsProfileModalOpen(true)}
+              />
+            )}
+          </DashboardContent>
       </MainContent>
 
       <MobileNav>
@@ -1328,90 +1785,240 @@ const TechnicianDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFue
         onProfileUpdate={handleProfileUpdate}
       />
 
-      {isBreakdownDetailModalOpen && selectedBreakdown && (
-        <ModalOverlay onClick={() => setIsBreakdownDetailModalOpen(false)}>
-          <ModalContainer onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <ModalHeaderContent>
-                <ModalHeaderTitle>{selectedBreakdown.title}</ModalHeaderTitle>
-                <ModalHeaderMeta>
-                  <span className="material-symbols-outlined">directions_car</span>
-                  {selectedBreakdown.vehicle_info || 'Vehicle'}
-                  <span style={{ margin: '0 0.5rem' }}>•</span>
-                  <span className="material-symbols-outlined">schedule</span>
-                  {new Date(selectedBreakdown.reported_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </ModalHeaderMeta>
-              </ModalHeaderContent>
-              <ModalCloseButton onClick={() => setIsBreakdownDetailModalOpen(false)}>
-                <span className="material-symbols-outlined">close</span>
-              </ModalCloseButton>
-            </ModalHeader>
-            <ModalBody>
-              <DetailSection>
-                <StatusBadge $status={selectedBreakdown.status}>
-                  <span className="material-symbols-outlined">
-                    {selectedBreakdown.status === 'resolved' ? 'check_circle' :
-                     selectedBreakdown.status === 'acknowledged' ? 'visibility' :
-                     'pending'}
-                  </span>
-                  {selectedBreakdown.status.charAt(0).toUpperCase() + selectedBreakdown.status.slice(1)}
-                </StatusBadge>
-              </DetailSection>
+       {isBreakdownDetailModalOpen && selectedBreakdown && (
+         <ModalOverlay onClick={() => setIsBreakdownDetailModalOpen(false)}>
+           <ModalContainer onClick={(e) => e.stopPropagation()}>
+             <ModalHeader>
+               <ModalHeaderContent>
+                 <ModalHeaderTitle>{selectedBreakdown.title}</ModalHeaderTitle>
+                 <ModalHeaderMeta>
+                   <span className="material-symbols-outlined">directions_car</span>
+                   {selectedBreakdown.vehicle_info || 'Vehicle'}
+                   <span style={{ margin: '0 0.5rem' }}>•</span>
+                   <span className="material-symbols-outlined">schedule</span>
+                   {new Date(selectedBreakdown.reported_at).toLocaleDateString('en-US', {
+                     year: 'numeric',
+                     month: 'long',
+                     day: 'numeric',
+                     hour: '2-digit',
+                     minute: '2-digit'
+                   })}
+                 </ModalHeaderMeta>
+               </ModalHeaderContent>
+               <ModalCloseButton onClick={() => setIsBreakdownDetailModalOpen(false)}>
+                 <span className="material-symbols-outlined">close</span>
+               </ModalCloseButton>
+             </ModalHeader>
+             <ModalBody>
+               <DetailSection>
+                 <StatusBadge $status={selectedBreakdown.status}>
+                   <span className="material-symbols-outlined">
+                     {selectedBreakdown.status === 'resolved' ? 'check_circle' :
+                      selectedBreakdown.status === 'acknowledged' ? 'visibility' :
+                      'pending'}
+                   </span>
+                   {selectedBreakdown.status.charAt(0).toUpperCase() + selectedBreakdown.status.slice(1)}
+                 </StatusBadge>
+               </DetailSection>
 
-              <DetailSection>
-                <DetailLabel>
-                  <span className="material-symbols-outlined">description</span>
-                  Description
-                </DetailLabel>
-                <DetailValue>{selectedBreakdown.description}</DetailValue>
-              </DetailSection>
+               <DetailSection>
+                 <DetailLabel>
+                   <span className="material-symbols-outlined">description</span>
+                   Description
+                 </DetailLabel>
+                 <DetailValue>{selectedBreakdown.description}</DetailValue>
+               </DetailSection>
 
-              {selectedBreakdown.image && (
-                <DetailSection>
-                  <DetailLabel>
-                    <span className="material-symbols-outlined">image</span>
-                    Attached Image
-                  </DetailLabel>
-                  <BreakdownImage 
-                    src={selectedBreakdown.image.startsWith('http') ? selectedBreakdown.image : `http://127.0.0.1:8000${selectedBreakdown.image}`}
-                    alt={selectedBreakdown.title}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                </DetailSection>
-              )}
+               {selectedBreakdown.image && (
+                 <DetailSection>
+                   <DetailLabel>
+                     <span className="material-symbols-outlined">image</span>
+                     Attached Image
+                   </DetailLabel>
+                   <BreakdownImage 
+                     src={selectedBreakdown.image.startsWith('http') ? selectedBreakdown.image : `http://127.0.0.1:8000${selectedBreakdown.image}`}
+                     alt={selectedBreakdown.title}
+                     onError={(e) => {
+                       e.target.style.display = 'none';
+                     }}
+                   />
+                 </DetailSection>
+               )}
 
-              {selectedBreakdown.mechanic_name && (
-                <DetailSection>
-                  <DetailLabel>
-                    <span className="material-symbols-outlined">person</span>
-                    Reported By
-                  </DetailLabel>
-                  <DetailValue>{selectedBreakdown.mechanic_name}</DetailValue>
-                </DetailSection>
-              )}
-            </ModalBody>
-            <ModalFooter>
-              <CloseButton onClick={() => setIsBreakdownDetailModalOpen(false)}>
-                <span className="material-symbols-outlined">close</span>
-                Close
-              </CloseButton>
-            </ModalFooter>
-          </ModalContainer>
-        </ModalOverlay>
-      )}
+               {selectedBreakdown.mechanic_name && (
+                 <DetailSection>
+                   <DetailLabel>
+                     <span className="material-symbols-outlined">person</span>
+                     Reported By
+                   </DetailLabel>
+                   <DetailValue>{selectedBreakdown.mechanic_name}</DetailValue>
+                 </DetailSection>
+               )}
+             </ModalBody>
+             <ModalFooter>
+               <CloseButton onClick={() => setIsBreakdownDetailModalOpen(false)}>
+                 <span className="material-symbols-outlined">close</span>
+                 Close
+               </CloseButton>
+             </ModalFooter>
+           </ModalContainer>
+          </ModalOverlay>
+        )}
 
-      {/* Prevision AI Chat Widget */}
-      <PrevisionChatWidget vehicles={vehicles} />
-    </Container>
+        {/* Notifications Popup */}
+        {showNotificationsPopup && (
+          <NotificationsPopup
+            messages={adminMessages}
+            loading={loadingMessages}
+            onClose={() => setShowNotificationsPopup(false)}
+            onSendPassage={() => {
+              setShowNotificationsPopup(false);
+              setShowPassagePopup(true);
+            }}
+          />
+        )}
+
+        {/* Send Passage Popup */}
+        {showPassagePopup && (
+          <SendPassagePopup
+            formData={passageFormData}
+            setFormData={setPassageFormData}
+            onClose={() => setShowPassagePopup(false)}
+            onSubmit={handleSubmitPassage}
+          />
+        )}
+     </Container>
   );
-};
+   };
+   // End of TechnicianDashboard component
 
-export default TechnicianDashboard;
+   // ========== NOTIFICATIONS POPUP COMPONENT ==========
+   const NotificationsPopup = ({ messages, loading, onClose, onSendPassage }) => {
+     return (
+       <PopupOverlay onClick={onClose}>
+         <PopupContent onClick={e => e.stopPropagation()}>
+           <PopupHeader>
+             <PopupTitle>
+               <i data-feather="message-square" className="fi-icon"></i>
+               Messages from Admin
+             </PopupTitle>
+             <PopupCloseButton onClick={onClose}>×</PopupCloseButton>
+           </PopupHeader>
+
+           <PopupBody>
+             {loading ? (
+               <LoadingSpinner>
+                 <i data-feather="loader-2" className="fi-icon spinning"></i>
+                 <span>Loading messages...</span>
+               </LoadingSpinner>
+             ) : messages.length === 0 ? (
+               <EmptyState>
+                 <i data-feather="inbox" className="fi-icon"></i>
+                 <p>No messages from admin yet</p>
+               </EmptyState>
+             ) : (
+               <MessagesList>
+                 {messages.map((msg) => (
+                   <MessageItem key={msg.id} $isRead={msg.is_read}>
+                     <MessageHeader>
+                       <SenderInfo>
+                         <Avatar>{msg.sender?.first_name?.charAt(0) || 'A'}{msg.sender?.last_name?.charAt(0) || ''}</Avatar>
+                         <div>
+                           <SenderName>{msg.sender?.first_name} {msg.sender?.last_name}</SenderName>
+                           <MessageTime>{new Date(msg.created_at).toLocaleString()}</MessageTime>
+                         </div>
+                       </SenderInfo>
+                       {!msg.is_read && <UnreadBadge>New</UnreadBadge>}
+                     </MessageHeader>
+                     <MessageSubject>{msg.subject || 'No subject'}</MessageSubject>
+                     <MessageBody>{msg.body}</MessageBody>
+                   </MessageItem>
+                 ))}
+               </MessagesList>
+             )}
+           </PopupBody>
+
+           <PopupFooter>
+             <SendPassageButton onClick={onSendPassage}>
+               <i data-feather="send" className="fi-icon"></i>
+               Send Passage
+             </SendPassageButton>
+           </PopupFooter>
+         </PopupContent>
+       </PopupOverlay>
+     );
+   };
+
+   // ========== SEND PASSAGE POPUP COMPONENT ==========
+   const SendPassagePopup = ({ formData, setFormData, onClose, onSubmit }) => {
+     const handleChange = (e) => {
+       const { name, value } = e.target;
+       setFormData(prev => ({ ...prev, [name]: value }));
+     };
+
+     const handleSubmit = async (e) => {
+       e.preventDefault();
+       await onSubmit(e);
+     };
+
+     return (
+       <PopupOverlay onClick={onClose}>
+         <PopupContentSmall onClick={e => e.stopPropagation()}>
+           <PopupHeader>
+             <PopupTitle>
+               <i data-feather="send" className="fi-icon"></i>
+               Send Passage Message
+             </PopupTitle>
+             <PopupCloseButton onClick={onClose}>×</PopupCloseButton>
+           </PopupHeader>
+
+           <PopupBody>
+             <form onSubmit={handleSubmit}>
+               <FormGroup>
+                 <FormLabel>Message</FormLabel>
+                 <FormTextArea
+                   name="message"
+                   value={formData.message}
+                   onChange={handleChange}
+                   placeholder="Enter your passage message..."
+                   rows="4"
+                   required
+                 />
+               </FormGroup>
+               <FormGroup>
+                 <FormLabel>Urgency</FormLabel>
+                 <FormSelect
+                   name="urgency"
+                   value={formData.urgency}
+                   onChange={handleChange}
+                 >
+                   <option value="normal">Normal</option>
+                   <option value="urgent">Urgent</option>
+                   <option value="critical">Critical</option>
+                 </FormSelect>
+               </FormGroup>
+
+               {formData.urgency === 'urgent' || formData.urgency === 'critical' ? (
+                 <UrgencyWarning $level={formData.urgency}>
+                   <i data-feather="alert-triangle" className="fi-icon"></i>
+                   {formData.urgency === 'urgent' ? 'This will be marked as urgent' : 'This is a critical alert!'}
+                 </UrgencyWarning>
+               ) : null}
+
+               <ButtonGroup>
+                 <CancelButton type="button" onClick={onClose}>
+                   Cancel
+                 </CancelButton>
+                 <SendButton type="submit">
+                   <i data-feather="send" className="fi-icon"></i>
+                   Send Message
+                 </SendButton>
+               </ButtonGroup>
+             </form>
+           </PopupBody>
+         </PopupContentSmall>
+       </PopupOverlay>
+     );
+   };
+
+   export default TechnicianDashboard;

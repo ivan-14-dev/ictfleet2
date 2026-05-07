@@ -3,7 +3,7 @@ import LoginPage from './page/LoginPage';
 import AdminDashboard from './page/AdminDashboard';
 import DriverDashboard from './page/DriverDashboard';
 import TechnicianDashboard from './page/TechnicianDashboard';
-import PrevisionPage from './page/PrevisionPage';
+
 import FuelUsagePage from './page/FuelUsagePage';
 import { isAuthenticated, getCurrentUser, authAPI, isAdmin, isDriver, isMechanic } from './service/api';
 
@@ -12,7 +12,6 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showPrevision, setShowPrevision] = useState(false);
   const [showFuelUsage, setShowFuelUsage] = useState(false);
 
   useEffect(() => {
@@ -85,7 +84,6 @@ function App() {
       return <AdminDashboard 
         onLogout={handleLogout} 
         currentUser={currentUser} 
-        onOpenPrevision={() => setShowPrevision(true)} 
         onOpenFuelUsage={() => setShowFuelUsage(true)}
         showFuelUsage={showFuelUsage}
         onCloseFuelUsage={() => setShowFuelUsage(false)}
@@ -94,7 +92,6 @@ function App() {
       return <DriverDashboard 
         onLogout={handleLogout} 
         currentUser={currentUser} 
-        onOpenPrevision={() => setShowPrevision(true)} 
         onOpenFuelUsage={() => setShowFuelUsage(true)}
         showFuelUsage={showFuelUsage}
         onCloseFuelUsage={() => setShowFuelUsage(false)}
@@ -103,7 +100,6 @@ function App() {
       return <TechnicianDashboard 
         onLogout={handleLogout} 
         currentUser={currentUser} 
-        onOpenPrevision={() => setShowPrevision(true)} 
         onOpenFuelUsage={() => setShowFuelUsage(true)}
         showFuelUsage={showFuelUsage}
         onCloseFuelUsage={() => setShowFuelUsage(false)}
@@ -112,7 +108,6 @@ function App() {
       return <AdminDashboard 
         onLogout={handleLogout} 
         currentUser={currentUser} 
-        onOpenPrevision={() => setShowPrevision(true)} 
         onOpenFuelUsage={() => setShowFuelUsage(true)}
         showFuelUsage={showFuelUsage}
         onCloseFuelUsage={() => setShowFuelUsage(false)}

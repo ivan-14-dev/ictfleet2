@@ -244,6 +244,10 @@ class DriverRepairVerificationView(generics.GenericAPIView):
         if not pk:
             # List all repair records for driver's vehicles
             repairs = self.get_queryset()
+            # Filter by status if provided
+            status = request.query_params.get('status')
+            if status:
+                repairs = repairs.filter(status=status)
             serializer = self.get_serializer(repairs, many=True)
             return Response(serializer.data)
         
@@ -268,7 +272,7 @@ class DriverRepairVerificationView(generics.GenericAPIView):
         repair.driver_verified = True
         repair.driver_verified_at = timezone.now()
         repair.driver_verified_by = request.user
-        repair.driver_comments = request.data.get('comments', '')
+        repair.driver_comments = request.data.get('driver_comments', '')
         repair.save()
         
         return Response({

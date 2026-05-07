@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import ProfilePage from './ProfilePage';
 import AddVehicleModal from '../component/AddVehicleModal';
 import AddAccessoryModal from '../component/AddAccessoryModal';
 import BreakdownsReport from '../component/BreakdownsReport';
@@ -11,7 +12,6 @@ import NotificationsPage from './NotificationsPage';
 import AccessoriesPage from './AccessoriesPage';
 import UserManagementPage from './UserManagementPage';
 import ReportsPage from './ReportsPage';
-import PrevisionChatWidget from '../component/PrevisionChatWidget';
 import FuelUsagePage from './FuelUsagePage';
 import { vehiclesAPI, accessoriesAPI, notificationsAPI, messagesAPI, activitiesAPI, isAdmin } from '../service';
 import { authAPI } from '../service/api';
@@ -1737,7 +1737,7 @@ const FooterButton = styled.button`
 `;
 
 // Admin Dashboard Component
-const AdminDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsage, showFuelUsage, onCloseFuelUsage }) => {
+const AdminDashboard = ({ onLogout, currentUser, onOpenFuelUsage, showFuelUsage, onCloseFuelUsage }) => {
   const [activeSection, setActiveSection] = useState('overview');
   const [isAddVehicleModalOpen, setIsAddVehicleModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
@@ -1756,15 +1756,28 @@ const AdminDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsag
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [recentActivities, setRecentActivities] = useState([]);
-  const [selectedReport, setSelectedReport] = useState(null);
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
-  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+   const [recentActivities, setRecentActivities] = useState([]);
+   const [selectedReport, setSelectedReport] = useState(null);
+   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+   const [editingUser, setEditingUser] = useState(null);
+   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
+   const [newPassword, setNewPassword] = useState('');
+   const [confirmPassword, setConfirmPassword] = useState('');
+   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
+   // Computed filtered vehicles based on searchQuery
+   const filteredVehicles = vehicles.filter(v => {
+     const q = searchQuery.toLowerCase();
+     if (!q) return true;
+     return (
+       v.make?.toLowerCase().includes(q) ||
+       v.model?.toLowerCase().includes(q) ||
+       v.license_plate?.toLowerCase().includes(q) ||
+       (v.assigned_driver_name || '').toLowerCase().includes(q)
+     );
+   });
+
+   useEffect(() => {
     // Initialize Feather Icons
     if (window.feather) {
       window.feather.replace();
@@ -2239,9 +2252,9 @@ const AdminDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsag
     fetchAccessories();
   };
 
-  const handleViewProfile = () => {
-    setIsProfileModalOpen(true);
-  };
+   const handleViewProfile = () => {
+     setActiveSection('profile');
+   };
 
   const handleProfileUpdate = async () => {
     // Refresh current user data from localStorage
@@ -2268,29 +2281,27 @@ const AdminDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsag
             </LogoContainer>
           </LogoSection>
 
-          <NavMenu>
-            {menuItems.map((item) => (
-              <NavItem
-                key={item.id}
-                href="#"
-                className={activeSection === item.id ? 'active' : ''}
-                style={item.isPrevision ? { background: 'linear-gradient(135deg, rgba(16, 163, 127, 0.15), rgba(5, 150, 105, 0.15))', borderLeft: '3px solid #10a37f' } : item.isFuel ? { background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15))', borderLeft: '3px solid #f59e0b' } : {}}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (item.isPrevision && onOpenPrevision) {
-                    onOpenPrevision();
-                  } else if (item.isFuel) {
-                    setActiveSection('fuel');
-                  } else {
-                    setActiveSection(item.id);
-                  }
-                }}
-              >
-                <i data-feather={item.icon} className="fi-icon"></i>
-                <span>{item.label}</span>
-              </NavItem>
-            ))}
-          </NavMenu>
+           <NavMenu>
+             {menuItems.map((item) => (
+               <NavItem
+                 key={item.id}
+                 href="#"
+                 className={activeSection === item.id ? 'active' : ''}
+                 style={item.isFuel ? { background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15))', borderLeft: '3px solid #f59e0b' } : {}}
+                 onClick={(e) => {
+                   e.preventDefault();
+                   if (item.isFuel) {
+                     setActiveSection('fuel');
+                   } else {
+                     setActiveSection(item.id);
+                   }
+                 }}
+               >
+                 <i data-feather={item.icon} className="fi-icon"></i>
+                 <span>{item.label}</span>
+               </NavItem>
+             ))}
+           </NavMenu>
         </SidebarTop>
 
         <SidebarBottom>
@@ -2319,14 +2330,16 @@ const AdminDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsag
       </Sidebar>
 
       <TopNav>
-        <SearchContainer>
-          <SearchInput>
-            <input
-              type="text"
-              placeholder="Search vehicles, drivers, or reports..."
-            />
-          </SearchInput>
-        </SearchContainer>
+           <SearchContainer>
+             <SearchInput>
+               <input
+                 type="text"
+                 placeholder="Search vehicles, drivers, or reports..."
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+               />
+             </SearchInput>
+           </SearchContainer>
 
         <TopNavRight>
           <NotificationButton>
@@ -2451,12 +2464,13 @@ const AdminDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsag
             </>
           )}
 
-          {activeSection === 'accessories' && (
-            <AccessoriesPage
-              onBack={() => setActiveSection('overview')}
-              showHeader={false}
-            />
-          )}
+           {activeSection === 'accessories' && (
+             <AccessoriesPage
+               onBack={() => setActiveSection('overview')}
+               showHeader={false}
+               searchQuery={searchQuery}
+             />
+           )}
 
           {activeSection === 'fuel' && (
             <FuelUsagePage
@@ -2651,21 +2665,21 @@ const AdminDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsag
                 </FilterContainer>
               </VehicleHeader>
 
-              <VehicleGrid>
-                {loading ? (
-                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>
-                    Loading vehicles...
-                  </div>
-                ) : error ? (
-                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: 'red' }}>
-                    Error loading vehicles: {error}
-                  </div>
-                ) : vehicles.length === 0 ? (
-                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>
-                    No vehicles found. Add your first vehicle!
-                  </div>
-                ) : (
-                  vehicles.map((vehicle) => (
+               <VehicleGrid>
+                 {loading ? (
+                   <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>
+                     Loading vehicles...
+                   </div>
+                 ) : error ? (
+                   <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: 'red' }}>
+                     Error loading vehicles: {error}
+                   </div>
+                 ) : filteredVehicles.length === 0 ? (
+                   <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>
+                     {searchQuery ? 'No vehicles match your search.' : 'No vehicles found. Add your first vehicle!'}
+                   </div>
+                 ) : (
+                   filteredVehicles.map((vehicle) => (
                     <VehicleCard key={vehicle.id}>
                       <VehicleImage style={{ position: 'relative', overflow: 'hidden' }}>
                         {vehicle.image && vehicle.image.trim() ? (
@@ -2748,9 +2762,17 @@ const AdminDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsag
               <LoadMoreButton>
                 Load More Vehicles
               </LoadMoreButton>
-            </>
-          )}
-        </DashboardContent>
+             </>
+           )}
+
+           {activeSection === 'profile' && (
+             <ProfilePage
+               currentUser={currentUser}
+               onBack={() => setActiveSection('overview')}
+               onEdit={() => setIsProfileModalOpen(true)}
+             />
+           )}
+         </DashboardContent>
       </MainContent>
 
       <MobileNav>
@@ -2785,11 +2807,9 @@ const AdminDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsag
         onProfileUpdate={handleProfileUpdate}
       />
 
-      {/* Prevision AI Chat Widget - Always visible */}
-      <PrevisionChatWidget vehicles={vehicles} />
 
-    </Container>
-  );
+     </Container>
+   );
 };
 
 export default AdminDashboard;

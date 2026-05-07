@@ -3,7 +3,6 @@ import styled from 'styled-components';
 import UserProfileDropdown from '../component/UserProfileDropdown';
 import UserProfileModal from '../component/UserProfileModal';
 import VehicleDetailsModal from '../component/VehicleDetailsModal';
-import PrevisionChatWidget from '../component/PrevisionChatWidget';
 import { vehiclesAPI, messagesAPI, isDriver, authAPI, repairAPI, fuelAPI } from '../service/api';
 
 // Main Container
@@ -1257,7 +1256,7 @@ const SuccessMessage = styled.div`
 `;
 
 
-const DriverDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsage }) => {
+const DriverDashboard = ({ onLogout, currentUser, onOpenPrevision }) => {
   const [activeSection, setActiveSection] = useState('overview');
   const [assignedVehicles, setAssignedVehicles] = useState([]);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -1267,6 +1266,7 @@ const DriverDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsa
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [reportType, setReportType] = useState('daily');
+  const [currentUserState, setCurrentUser] = useState(currentUser);
   const [issueSubject, setIssueSubject] = useState('');
   const [issueBody, setIssueBody] = useState('');
   const [driverReports, setDriverReports] = useState([]);
@@ -1595,7 +1595,7 @@ const DriverDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsa
       setBody('');
       setReportType('daily');
       setActiveSection('overview');
-    } catch (err) {
+    } catch {
       alert('Failed to submit report');
     }
   };
@@ -1608,7 +1608,7 @@ const DriverDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsa
       setIssueSubject('');
       setIssueBody('');
       setActiveSection('overview');
-    } catch (err) {
+    } catch {
       alert('Failed to report issue');
     }
   };
@@ -1626,7 +1626,8 @@ const DriverDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsa
   }
 
   return (
-    <Container>
+    <>
+      <Container>
       <Sidebar>
         <SidebarTop>
           <LogoSection>
@@ -1696,7 +1697,7 @@ const DriverDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsa
             </SettingsButton>
             <Divider />
             <UserProfileDropdown
-              currentUser={currentUser}
+              currentUser={currentUserState}
               onLogout={onLogout}
               onViewProfile={handleViewProfile}
             />
@@ -1712,7 +1713,7 @@ const DriverDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsa
               </DashboardHeader>
 
               <KPIGrid>
-                {driverKpis.map((kpi, index) => (
+                 {driverKpis.map((kpi) => (
                   <KPICard key={kpi.title}>
                     <KPICardHeader>
                       <KPIIcon $bg={kpi.bg} $color={kpi.color}>
@@ -2565,7 +2566,7 @@ const DriverDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsa
       <UserProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        currentUser={currentUser}
+         currentUser={currentUserState}
         onProfileUpdate={handleProfileUpdate}
       />
 
@@ -2731,9 +2732,8 @@ const DriverDashboard = ({ onLogout, currentUser, onOpenPrevision, onOpenFuelUsa
         </ModalOverlay>
       )}
 
-      {/* Prevision AI Chat Widget */}
-      <PrevisionChatWidget vehicles={assignedVehicles} />
-    </Container>
+      </Container>
+    </>
   );
 };
 

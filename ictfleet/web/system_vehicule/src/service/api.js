@@ -82,6 +82,16 @@ const apiRequest = async (endpoint, options = {}) => {
     return await handleResponse(response);
   } catch (error) {
     console.error('API request failed:', error);
+    // If token refresh failed with 401, clear tokens and redirect to login
+    if (error.status === 401) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      // Redirect to login page if not already there
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
     throw error;
   }
 };
@@ -89,11 +99,17 @@ const apiRequest = async (endpoint, options = {}) => {
 // Handle API response
 const handleResponse = async (response) => {
   let data;
+  const contentType = response.headers.get('content-type');
+
   if (response.status === 204) {
     // No Content
     data = null;
-  } else {
+  } else if (contentType && contentType.includes('application/json')) {
     data = await response.json();
+  } else {
+    // Non-JSON response (e.g., HTML error page)
+    const text = await response.text();
+    data = { detail: text, non_json: true };
   }
 
   if (!response.ok) {
@@ -680,11 +696,16 @@ export const fuelAPI = {
 export const repairAPI = {
   getRepairRecords: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = queryString ? `/repair-records/?${queryString}` : '/repair-records/';
+    const endpoint = queryString ? `/repairs/?${queryString}` : '/repairs/';
+    return await apiRequest(endpoint);
+  },
+  getDriverRepairVerifications: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/repairs/verify/?${queryString}` : '/repairs/verify/';
     return await apiRequest(endpoint);
   },
   verifyRepairRecord: async (id, data) => {
-    return await apiRequest(`/repair-records/${id}/verify/`, {
+    return await apiRequest(`/repairs/verify/${id}/`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
