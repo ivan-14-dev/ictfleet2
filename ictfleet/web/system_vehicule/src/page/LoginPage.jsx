@@ -18,21 +18,25 @@ const LoginPage = ({ onLogin }) => {
     setError('');
 
     try {
+      console.log('LOGIN PAGE: Starting login with username:', username);
       const response = await authAPI.login(username, password);
+      console.log('LOGIN PAGE: Login response received:', response);
 
       // Store user role for role-based access
       localStorage.setItem('user_role', response.user.role);
+      console.log('LOGIN PAGE: User role stored:', response.user.role);
 
       setIsLoading(false);
 
       // Handle successful login
       if (onLogin) {
+        console.log('LOGIN PAGE: Calling onLogin callback');
         onLogin(response.user);
       }
     } catch (error) {
       setIsLoading(false);
+      console.error('LOGIN PAGE: Login error:', error);
       setError(error.message || 'Login failed. Please check your credentials.');
-      console.error('Login error:', error);
     }
   };
 

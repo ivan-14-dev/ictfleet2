@@ -1920,7 +1920,7 @@ const AdminDashboard = ({ onLogout, currentUser, onOpenFuelUsage, showFuelUsage,
     { id: 'accessories', label: 'Accessories', icon: 'package' },
     { id: 'repairs', label: 'Repairs', icon: 'tool' },
     { id: 'breakdowns', label: 'Breakdowns', icon: 'alert-circle' },
-    { id: 'messages', label: 'Messages', icon: 'message-circle' },
+    //{ id: 'messages', label: 'Messages', icon: 'message-circle' },
     { id: 'reports', label: 'Reports', icon: 'bar-chart' },
     { id: 'fuel', label: 'Fuel', icon: 'droplet', isFuel: true },
   ];

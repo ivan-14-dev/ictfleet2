@@ -188,58 +188,76 @@ export const authAPI = {
 
   createUser: async (userData) => {
     // Handle both FormData and plain object
-    let body, headers = {};
+    let body;
+    const headers = {};
 
     if (userData instanceof FormData) {
       body = userData;
       // Don't set Content-Type for FormData, let browser set it
     } else {
       body = JSON.stringify(userData);
-      headers = { 'Content-Type': 'application/json' };
+      headers['Content-Type'] = 'application/json';
     }
 
-    return await apiRequest('/users/create/', {
+    const options = {
       method: 'POST',
-      headers,
       body,
-    });
+    };
+
+    if (Object.keys(headers).length > 0) {
+      options.headers = headers;
+    }
+
+    return await apiRequest('/users/create/', options);
   },
 
   updateUser: async (userId, userData) => {
     // Handle both FormData and plain object
-    let body, headers = {};
+    let body;
+    const headers = {};
 
     if (userData instanceof FormData) {
       body = userData;
       // Don't set Content-Type for FormData, let browser set it
     } else {
       body = JSON.stringify(userData);
-      headers = { 'Content-Type': 'application/json' };
+      headers['Content-Type'] = 'application/json';
     }
 
-    return await apiRequest(`/users/${userId}/`, {
+    const options = {
       method: 'PUT',
-      headers,
       body,
-    });
+    };
+
+    if (Object.keys(headers).length > 0) {
+      options.headers = headers;
+    }
+
+    return await apiRequest(`/users/${userId}/`, options);
   },
 
   updateSelfProfile: async (userData) => {
     // Update current user's own profile
-    let body, headers = {};
+    let body;
+    const headers = {};
 
     if (userData instanceof FormData) {
       body = userData;
     } else {
       body = JSON.stringify(userData);
-      headers = { 'Content-Type': 'application/json' };
+      headers['Content-Type'] = 'application/json';
     }
 
-    return await apiRequest('/users/profile/update/', {
+    const options = {
       method: 'PUT',
-      headers,
       body,
-    });
+    };
+
+    if (Object.keys(headers).length > 0) {
+      options.headers = headers;
+    }
+
+    return await apiRequest('/users/profile/update/', options);
   },
 
   deleteUser: async (userId) => {
@@ -427,7 +445,6 @@ export const accessoriesAPI = {
 
     return await apiRequest('/accessories/', {
       method: 'POST',
-      headers: {},
       body: formData,
     });
   },
@@ -452,7 +469,6 @@ export const accessoriesAPI = {
 
     return await apiRequest(`/accessories/${id}/`, {
       method: 'PUT',
-      headers: {},
       body: formData,
     });
   },
